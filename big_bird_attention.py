@@ -860,7 +860,7 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
 ## A mini attention test to see if everything is working.
 if __name__ == '__main__':
     attn = FlaxBigBirdBlockSparseAttention(
-        BigBirdConfig, 3, jnp.flot32
+        BigBirdConfig(), 3, jnp.float32
     )
 
     ## We generate a random tensor.
@@ -868,13 +868,15 @@ if __name__ == '__main__':
     seq_length = 1024
     num_heads = 12
     hidden_dim = 768
-    rand_tensor = jax.random.uniform(jax.random.key(12), (batch, seq_length, hidden_dim))
+    rand_tensor = jax.random.uniform(jax.random.PRNGKey(12), (batch, seq_length, hidden_dim))
+    segment_id_mask = jnp.ones((batch, seq_length), dtype=jnp.float32)
+    params = attn.init(jax.random.PRNGKey(13), hidden_states=rand_tensor, attention_mask=segment_id_mask)
 
-    attn(rand_tensor).block_until_ready()
+    attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
 
     import time
     a = time.time()
-    attn(rand_tensor).block_until_ready()
+    attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
     b = time.time()
 
     print(f'time elapsed: {b-a}')
