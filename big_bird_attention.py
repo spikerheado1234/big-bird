@@ -399,7 +399,7 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
         # adding contribution of global keys
         # [bsz, n_heads, from_seq_len//from_block_size-4, from_block_size, to_block_size] x [bsz, n_heads, to_block_size, -1]
         #  ==> [bsz, n_heads, from_seq_len//from_block_size-4, from_block_size, -1]
-        context_layer += jnp.einsum(
+        context_layer = jnp.einsum(
             "bhlqk,bhkd->bhlqd", attn_weights[:, :, :, :, :to_block_size], blocked_value_matrix[:, :, 0]
         )
         # [bsz, n_heads, from_seq_len//from_block_size-4, from_block_size, to_block_size] x [bsz, n_heads, to_block_size, -1]
@@ -883,7 +883,9 @@ if __name__ == '__main__':
 
     import time
     a = time.time()
-    attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
+    output = attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)
+    output[0].block_until_ready()
     b = time.time()
+    print(output[0].shape)
 
     print(f'time elapsed: {b-a}')
