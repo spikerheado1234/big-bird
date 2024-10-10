@@ -16,6 +16,8 @@
 
 from typing import Callable, Optional, Tuple
 
+import pdb
+
 import flax
 import flax.linen as nn
 import jax
@@ -235,6 +237,7 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
         # rand_mask = self._create_rand_mask_from_inputs(
         #     from_blocked_mask, to_blocked_mask, rand_attn, n_heads, n_rand_blocks, bsz, from_seq_len, from_block_size
         # )
+        # pdb.set_trace()
 
         blocked_query_matrix = query_layer.reshape(bsz, n_heads, from_seq_len // from_block_size, from_block_size, -1)
         blocked_key_matrix = key_layer.reshape(bsz, n_heads, to_seq_len // to_block_size, to_block_size, -1)
@@ -332,7 +335,9 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
         #     [blocked_value_matrix[:, :, 1:-3], blocked_value_matrix[:, :, 2:-2], blocked_value_matrix[:, :, 3:-1]],
         #     axis=3,
         # )  # [bsz, n_heads, from_seq_len//from_block_size-4, 3*to_block_size, -1]
-        middle_query_matrix = blocked_query_matrix[:, :, 2:-2]
+        #middle_query_matrix = blocked_query_matrix[:, :, 2:-2]
+        ## We have to change this to compute the entire column. 
+        middle_query_matrix = blocked_query_matrix[:, :, 1:]
 
         # sliding attention scores for q[-2:2]
         # [bsz, n_heads, from_seq_len//from_block_size-4, from_block_size, -1] x [b, n_heads, from_seq_len//from_block_size-4, 3*to_block_size, -1]
