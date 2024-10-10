@@ -9,7 +9,6 @@ import pdb
 import math
 import jax.numpy as jnp
 import jax
-import sparse_attention
 from typing import Callable
 
 class PositionalEmbedding(nn.Module):
@@ -61,11 +60,10 @@ class EncoderLayer(nn.Module):
         ## We need three dropout layers.
         self.dropout_one = nn.Dropout(self.dropout)
 
-    def __call__(self, x, step, *, train):
-        queries, keys, values = x, x, x
+    def __call__(self, x, mask, step, *, train):
 
         ## we first compute the attention value.
-        attn = self.mha(x, x, x)
+        attn = self.mha(hidden_states=x, attention_mask=mask)
 
         ## Then we have to compute the layer norm of the addition.
         attn_prev_ffn = self.layer_norm_one(attn + x)
@@ -99,9 +97,9 @@ class Encoder(nn.Module):
                                         self.sequence_length, self.ffn_size, 
                                         batch=self.batch, sparsity_parameter=self.sparsity_parameter, attn=self.attn) for _ in range(self.encoder_layers)]
 
-    def __call__(self, x, step, *, train):
+    def __call__(self, x, mask, step, *, train):
         for enc in self.encoders:
-            x = enc(x, step, train=train)
+            x = enc(x, mask=mask, step=step, train=train)
 
         return x
 
@@ -129,8 +127,8 @@ class Transformer(nn.Module):
 
         self.last_ffn = nn.Dense(self.vocabulary_size)
 
-    def __call__(self, encoder_input, *, train):
+    def __call__(self, encoder_input, mask, *, train):
             ## Over here, x is one input.
         encoder_input = self.positional_embedding(encoder_input, train=train)
-        encoder_output = self.encoder(encoder_input, False, train=train)
+        encoder_output = self.encoder(encoder_input, mask, False, train=train)
         return encoder_output 

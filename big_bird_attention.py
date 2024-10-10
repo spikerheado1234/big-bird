@@ -28,6 +28,7 @@ from flax.linen.attention import dot_product_attention_weights
 from flax.traverse_util import flatten_dict, unflatten_dict
 from jax import lax
 from big_bird_config import BigBirdConfig
+from transformer_skeleton import Transformer
 
 
 class FlaxBigBirdBlockSparseAttention(nn.Module):
@@ -870,31 +871,48 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
 
 ## A mini attention test to see if everything is working.
 if __name__ == '__main__':
-    #for blk in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
-    for blk in [1024]:
+    for blk in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         cnfg = BigBirdConfig()
         cnfg.block_size = blk 
         attn = FlaxBigBirdBlockSparseAttention(
             cnfg, 3, jnp.float32
         )
 
-        ## We generate a random tensor.
+        transformer = Transformer(cnfg.hidden_size,
+                                  cnfg.hidden_size // cnfg.num_attention_heads,
+                                  cnfg.num_attention_heads,
+                                  cnfg.hidden_dropout_prob,
+                                  1024,
+                                  cnfg.intermediate_size,
+                                  12,
+                                  cnfg.vocab_size,
+                                  True,
+                                  32,
+                                  blk,
+                                  attn)
+
+        ## We generate a random tensor. ##
         batch = 32
         seq_length = 1024
         num_heads = 12
         hidden_dim = 768
         rand_tensor = jax.random.uniform(jax.random.PRNGKey(12), (batch, seq_length, hidden_dim))
+        rand_transformer_tensor = jax.random.uniform(jax.random.PRNGKey(13), (batch, seq_length))
         segment_id_mask = jnp.ones((batch, seq_length), dtype=jnp.float32)
         params = attn.init(jax.random.PRNGKey(13), hidden_states=rand_tensor, attention_mask=segment_id_mask)
+        transformer_params = transformer.init(jax.random.PRNGKey(14), rand_transformer_tensor)
 
         for _ in range(5):
-            attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
+            #attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
+            transformer.apply(transformer_params, rand_transformer_tensor).block_until_ready()
 
         import time
         a = time.time()
         for _ in range(100):
-            output = attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)
-        output[0].block_until_ready()
+            #output = attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)
+            transformer_output = ransformer_output = transformer.apply(params, rand_tensor, segment_id_mask)
+        #output[0].block_until_ready()
+        transformer_output.block_until_ready()
         b = time.time()
 
         with open("results.txt", "a+") as f:
