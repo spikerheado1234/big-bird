@@ -871,8 +871,10 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
 
 ## A mini attention test to see if everything is working.
 if __name__ == '__main__':
+    cnfg = BigBirdConfig()
+    cnfg.block_size = 1024
     attn = FlaxBigBirdBlockSparseAttention(
-        BigBirdConfig(), 3, jnp.float32
+        cnfg, 3, jnp.float32
     )
 
     ## We generate a random tensor.
