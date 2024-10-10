@@ -871,28 +871,31 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
 
 ## A mini attention test to see if everything is working.
 if __name__ == '__main__':
-    cnfg = BigBirdConfig()
-    cnfg.block_size = 1024
-    attn = FlaxBigBirdBlockSparseAttention(
-        cnfg, 3, jnp.float32
-    )
+    for blk in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
+        cnfg = BigBirdConfig()
+        cnfg.block_size = blk 
+        attn = FlaxBigBirdBlockSparseAttention(
+            cnfg, 3, jnp.float32
+        )
 
-    ## We generate a random tensor.
-    batch = 32
-    seq_length = 1024
-    num_heads = 12
-    hidden_dim = 768
-    rand_tensor = jax.random.uniform(jax.random.PRNGKey(12), (batch, seq_length, hidden_dim))
-    segment_id_mask = jnp.ones((batch, seq_length), dtype=jnp.float32)
-    params = attn.init(jax.random.PRNGKey(13), hidden_states=rand_tensor, attention_mask=segment_id_mask)
+        ## We generate a random tensor.
+        batch = 32
+        seq_length = 1024
+        num_heads = 12
+        hidden_dim = 768
+        rand_tensor = jax.random.uniform(jax.random.PRNGKey(12), (batch, seq_length, hidden_dim))
+        segment_id_mask = jnp.ones((batch, seq_length), dtype=jnp.float32)
+        params = attn.init(jax.random.PRNGKey(13), hidden_states=rand_tensor, attention_mask=segment_id_mask)
 
-    attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
+        for _ in range(5):
+            attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)[0].block_until_ready()
 
-    import time
-    a = time.time()
-    output = attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)
-    output[0].block_until_ready()
-    b = time.time()
-    print(output[0].shape)
+        import time
+        a = time.time()
+        for _ in range(100):
+            output = attn.apply(params, hidden_states=rand_tensor, attention_mask=segment_id_mask)
+        output[0].block_until_ready()
+        b = time.time()
 
-    print(f'time elapsed: {b-a}')
+        with open("results.txt", "a+") as f:
+            f.write(f'blk: {blk} Time: {b-a}')
