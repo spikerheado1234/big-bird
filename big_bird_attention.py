@@ -1,4 +1,3 @@
-
 # coding=utf-8
 # Copyright 2021 The Google Flax Team Authors and The HuggingFace Inc. team.
 #
@@ -871,7 +870,8 @@ class FlaxBigBirdBlockSparseAttention(nn.Module):
 
 ## A mini attention test to see if everything is working.
 if __name__ == '__main__':
-    for blk in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
+    #for blk in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
+    for blk in [1024]:
         cnfg = BigBirdConfig()
         cnfg.block_size = blk 
         attn = FlaxBigBirdBlockSparseAttention(
@@ -898,4 +898,4 @@ if __name__ == '__main__':
         b = time.time()
 
         with open("results.txt", "a+") as f:
-            f.write(f'blk: {blk} Time: {b-a}')
+            f.write(f'blk: {blk} Time: {b-a}\n')
